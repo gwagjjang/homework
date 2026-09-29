@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>과제 마감 관리</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        
+        :root {
+            --theme-primary: #2563eb;
+            --theme-hover: #1d4ed8;
+            --theme-light: #eff6ff;
+            --theme-shadow: rgba(37, 99, 235, 0.25);
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Dynamic Theme Applied Utility Classes */
+        .theme-bg-primary {
+            background-color: var(--theme-primary) !important;
+        }
+        .theme-bg-hover:hover {
+            background-color: var(--theme-hover) !important;
+        }
+        .theme-text-primary {
+            color: var(--theme-primary) !important;
+        }
+        .theme-border-primary {
+            border-color: var(--theme-primary) !important;
+        }
+        .theme-shadow {
+            box-shadow: 0 10px 25px -5px var(--theme-shadow), 0 8px 10px -6px var(--theme-shadow) !important;
+        }
+
+        /* Custom scrollbar hiding for clean mobile view */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between pb-24 selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Header -->
+    <header class="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-lg mx-auto px-4 py-3.5 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+                <div id="headerLogo" class="w-9 h-9 rounded-xl theme-bg-primary text-white flex items-center justify-center theme-shadow transition-colors duration-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">과제 마감 관리</h1>
+                    <p class="text-xs text-slate-500 font-medium" id="currentDateText">오늘 날짜 불러오는 중...</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <!-- Theme Palette Toggle Button -->
+                <button onclick="toggleThemePalette()" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-xs">
+                    <span class="w-3.5 h-3.5 rounded-full theme-bg-primary border border-white inline-block shadow-xs"></span>
+                    <span>색상 변경</span>
+                </button>
+
+                <div id="urgentBadge" class="hidden sm:flex items-center space-x-1 px-2.5 py-1 bg-red-50 text-red-600 rounded-full text-xs font-semibold border border-red-100">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="urgentCountText">마감 임박 0개</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expandable Theme Palette Bar -->
+        <div id="themePaletteBar" class="hidden border-t border-slate-100 bg-slate-50/90 px-4 py-3 backdrop-blur-sm transition-all duration-300">
+            <div class="max-w-lg mx-auto flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-bold text-slate-600 flex items-center gap-1">
+                    🎨 앱 테마 색상 선택:
+                </span>
+                <div class="flex items-center space-x-2">
+                    <!-- Preset Colors -->
+                    <button onclick="setTheme('#2563eb')" title="클래식 블루" class="w-6 h-6 rounded-full bg-blue-600 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    <button onclick="setTheme('#7c3aed')" title="바이올렛 퍼플" class="w-6 h-6 rounded-full bg-violet-600 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    <button onclick="setTheme('#059669')" title="에메랄드 그린" class="w-6 h-6 rounded-full bg-emerald-600 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    <button onclick="setTheme('#e11d48')" title="로즈 핑크" class="w-6 h-6 rounded-full bg-rose-600 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    <button onclick="setTheme('#d97706')" title="앰버 오렌지" class="w-6 h-6 rounded-full bg-amber-600 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    <button onclick="setTheme('#0d9488')" title="청록 티얼" class="w-6 h-6 rounded-full bg-teal-600 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    <button onclick="setTheme('#334155')" title="다크 슬레이트" class="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-offset-1 ring-transparent hover:scale-110 transition-transform cursor-pointer"></button>
+                    
+                    <!-- Custom Color Picker -->
+                    <label title="자유 색상 선택" class="relative cursor-pointer w-6 h-6 rounded-full bg-gradient-to-tr from-pink-500 via-red-500 to-yellow-400 flex items-center justify-center hover:scale-110 transition-transform shadow-xs">
+                        <input type="color" id="customColorPicker" onchange="setTheme(this.value)" class="opacity-0 absolute inset-0 w-full h-full cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-lg mx-auto w-full px-4 pt-4 flex-grow">
+        
+        <!-- Summary Stats Card -->
+        <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-4 shadow-lg mb-4 flex justify-around items-center">
+            <div class="text-center">
+                <p class="text-xs text-slate-400 font-medium">전체 과제</p>
+                <p class="text-2xl font-black mt-0.5 text-white" id="statTotal">0</p>
+            </div>
+            <div class="h-8 w-[1px] bg-slate-700"></div>
+            <div class="text-center">
+                <p class="text-xs text-amber-300 font-medium">진행 중</p>
+                <p class="text-2xl font-black mt-0.5 text-amber-400" id="statPending">0</p>
+            </div>
+            <div class="h-8 w-[1px] bg-slate-700"></div>
+            <div class="text-center">
+                <p class="text-xs text-emerald-400 font-medium">완료됨</p>
+                <p class="text-2xl font-black mt-0.5 text-emerald-400" id="statCompleted">0</p>
+            </div>
+        </div>
+
+        <!-- Controls: Search & Filter Tabs -->
+        <div class="space-y-3 mb-4">
+            <!-- Search Bar -->
+            <div class="relative">
+                <input type="text" id="searchInput" placeholder="과목명 또는 과제명 검색..." 
+                    class="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all shadow-sm">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
+
+            <!-- Filter Chips -->
+            <div class="flex items-center justify-between gap-1 overflow-x-auto no-scrollbar pb-1">
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="setFilter('all')" id="filter-all" class="filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-slate-900 text-white shadow-sm">
+                        전체
+                    </button>
+                    <button onclick="setFilter('pending')" id="filter-pending" class="filter-btn px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 bg-slate-100 rounded-lg transition-all">
+                        미완료
+                    </button>
+                    <button onclick="setFilter('urgent')" id="filter-urgent" class="filter-btn px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 bg-slate-100 rounded-lg transition-all">
+                        마감임박
+                    </button>
+                    <button onclick="setFilter('completed')" id="filter-completed" class="filter-btn px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 bg-slate-100 rounded-lg transition-all">
+                        완료
+                    </button>
+                </div>
+                <!-- Sort option -->
+                <select id="sortSelect" onchange="renderTasks()" class="text-xs bg-transparent text-slate-500 font-medium focus:outline-none cursor-pointer">
+                    <option value="deadline">마감일순</option>
+                    <option value="subject">과목명순</option>
+                    <option value="created">최신등록순</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Task List Container -->
+        <div id="taskList" class="space-y-3">
+            <!-- Dynamic Content populated via JavaScript -->
+        </div>
+
+        <!-- Empty State View -->
+        <div id="emptyState" class="hidden text-center py-12 px-4 bg-white rounded-2xl border border-dashed border-slate-200 my-4">
+            <div class="w-16 h-16 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+            </div>
+            <h3 class="text-sm font-bold text-slate-700">등록된 과제가 없습니다</h3>
+            <p class="text-xs text-slate-400 mt-1">하단의 추가 버튼을 눌러 새 과제를 입력해보세요!</p>
+        </div>
+    </main>
+
+    <!-- Fixed Bottom Button Bar -->
+    <div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-50 via-slate-50/90 to-transparent z-10 pointer-events-none">
+        <div class="max-w-lg mx-auto flex justify-center pointer-events-auto">
+            <button onclick="openModal()" class="w-full sm:w-auto px-6 py-3.5 theme-bg-primary theme-bg-hover active:scale-[0.98] text-white font-bold rounded-2xl theme-shadow flex items-center justify-center space-x-2 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>새 과제 추가하기</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Add / Edit Modal -->
+    <div id="taskModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-2xl p-6 shadow-2xl transform translate-y-full sm:translate-y-0 transition-transform duration-300 max-h-[90vh] overflow-y-auto" id="modalContainer">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                <h2 class="text-lg font-bold text-slate-900" id="modalTitle">과제 추가</h2>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="taskForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <input type="hidden" id="taskId">
+                
+                <!-- Subject Input -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">과목명 <span class="text-red-500">*</span></label>
+                    <input type="text" id="subjectInput" required placeholder="예: 컴퓨터구조, 영작문I, 경영학개론" 
+                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                </div>
+
+                <!-- Task Title Input -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">과제 내용 / 제목</label>
+                    <input type="text" id="titleInput" placeholder="예: 중간고사 대체 보고서 작성" 
+                        class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                </div>
+
+                <!-- Date & Time Input Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">마감 날짜 <span class="text-red-500">*</span></label>
+                        <input type="date" id="dueDateInput" required 
+                            class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">마감 시간</label>
+                        <input type="time" id="dueTimeInput" value="23:59" 
+                            class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Color Tag Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">구분 태그 색상</label>
+                    <div class="flex items-center space-x-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="tagColor" value="blue" checked class="peer sr-only">
+                            <span class="w-8 h-8 rounded-full bg-blue-500 inline-block ring-2 ring-offset-2 ring-transparent peer-checked:ring-blue-500 transition-all"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="tagColor" value="purple" class="peer sr-only">
+                            <span class="w-8 h-8 rounded-full bg-purple-500 inline-block ring-2 ring-offset-2 ring-transparent peer-checked:ring-purple-500 transition-all"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="tagColor" value="emerald" class="peer sr-only">
+                            <span class="w-8 h-8 rounded-full bg-emerald-500 inline-block ring-2 ring-offset-2 ring-transparent peer-checked:ring-emerald-500 transition-all"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="tagColor" value="amber" class="peer sr-only">
+                            <span class="w-8 h-8 rounded-full bg-amber-500 inline-block ring-2 ring-offset-2 ring-transparent peer-checked:ring-amber-500 transition-all"></span>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="tagColor" value="rose" class="peer sr-only">
+                            <span class="w-8 h-8 rounded-full bg-rose-500 inline-block ring-2 ring-offset-2 ring-transparent peer-checked:ring-rose-500 transition-all"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-3">
+                    <button type="submit" class="w-full py-3 theme-bg-primary theme-bg-hover text-white font-bold rounded-xl shadow-md transition-colors">
+                        저장하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let tasks = [];
+        let currentFilter = 'all';
+        let currentTheme = '#2563eb';
+
+        // Local Storage Keys
+        const STORAGE_KEY = 'assignment_manager_tasks_v1';
+        const THEME_STORAGE_KEY = 'assignment_manager_theme_v1';
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+            loadTasks();
+            updateHeaderDate();
+            setDefaultDate();
+            
+            // Search Input Listener
+            document.getElementById('searchInput').addEventListener('input', () => {
+                renderTasks();
+            });
+        });
+
+        // Toggle Theme Palette Bar
+        function toggleThemePalette() {
+            const bar = document.getElementById('themePaletteBar');
+            bar.classList.toggle('hidden');
+        }
+
+        // Apply and Save Theme
+        function setTheme(primaryHex) {
+            currentTheme = primaryHex;
+            localStorage.setItem(THEME_STORAGE_KEY, primaryHex);
+            applyTheme(primaryHex);
+        }
+
+        // Calculate Darker Hover Color
+        function adjustColorBrightness(hex, percent) {
+            let num = parseInt(hex.replace('#', ''), 16),
+                amt = Math.round(2.55 * percent),
+                R = (num >> 16) + amt,
+                G = (num >> 8 & 0x00FF) + amt,
+                B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+        }
+
+        // Apply CSS Root Variables for Theme
+        function applyTheme(hex) {
+            const hoverHex = adjustColorBrightness(hex, -20);
+            const root = document.documentElement;
+            
+            root.style.setProperty('--theme-primary', hex);
+            root.style.setProperty('--theme-hover', hoverHex);
+            
+            // Convert Hex to RGBA for Shadow
+            const r = parseInt(hex.slice(1, 3), 16) || 37;
+            const g = parseInt(hex.slice(3, 5), 16) || 99;
+            const b = parseInt(hex.slice(5, 7), 16) || 235;
+            root.style.setProperty('--theme-shadow', `rgba(${r}, ${g}, ${b}, 0.3)`);
+
+            // Update Color Picker value if present
+            const picker = document.getElementById('customColorPicker');
+            if (picker) picker.value = hex;
+        }
+
+        // Load Theme from LocalStorage
+        function loadTheme() {
+            const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+            if (savedTheme) {
+                currentTheme = savedTheme;
+            }
+            applyTheme(currentTheme);
+        }
+
+        // Set Today's Date in Header
+        function updateHeaderDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+            document.getElementById('currentDateText').innerText = now.toLocaleDateString('ko-KR', options);
+        }
+
+        // Set default date input to today
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dueDateInput').value = today;
+        }
+
+        // Load tasks from LocalStorage
+        function loadTasks() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    tasks = JSON.parse(saved);
+                } catch (e) {
+                    tasks = [];
+                }
+            } else {
+                // Sample initial data if empty
+                tasks = [
+                    {
+                        id: '1',
+                        subject: '컴퓨터구조',
+                        title: 'Cache Memory 과제 제출',
+                        dueDate: getRelativeDateStr(2),
+                        dueTime: '23:59',
+                        color: 'blue',
+                        completed: false,
+                        createdAt: Date.now() - 100000
+                    },
+                    {
+                        id: '2',
+                        subject: '영작문 I',
+                        title: 'Essay Draft 1차 피드백 수정',
+                        dueDate: getRelativeDateStr(0),
+                        dueTime: '18:00',
+                        color: 'purple',
+                        completed: false,
+                        createdAt: Date.now() - 50000
+                    }
+                ];
+                saveTasks();
+            }
+            renderTasks();
+        }
+
+        // Helper to generate sample relative date YYYY-MM-DD
+        function getRelativeDateStr(daysOffset) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Save tasks to LocalStorage
+        function saveTasks() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        }
+
+        // Calculate D-Day status and badge styling
+        function calculateDDay(dueDateStr, dueTimeStr) {
+            const now = new Date();
+            const target = new Date(`${dueDateStr}T${dueTimeStr || '23:59'}:00`);
+            
+            // Reset hours for pure day calculation
+            const todayReset = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const targetReset = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+            
+            const diffTime = targetReset - todayReset;
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) {
+                return {
+                    text: `D+${Math.abs(diffDays)}`,
+                    subText: '마감일 지남',
+                    badgeClass: 'bg-slate-100 text-slate-500 border-slate-200',
+                    isUrgent: false,
+                    isExpired: true
+                };
+            } else if (diffDays === 0) {
+                return {
+                    text: 'D-Day',
+                    subText: '오늘 마감!',
+                    badgeClass: 'bg-red-500 text-white shadow-sm shadow-red-500/30 font-extrabold animate-pulse',
+                    isUrgent: true,
+                    isExpired: false
+                };
+            } else if (diffDays <= 3) {
+                return {
+                    text: `D-${diffDays}`,
+                    subText: `${diffDays}일 남음`,
+                    badgeClass: 'bg-amber-500 text-white shadow-sm font-bold',
+                    isUrgent: true,
+                    isExpired: false
+                };
+            } else {
+                return {
+                    text: `D-${diffDays}`,
+                    subText: `${diffDays}일 남음`,
+                    badgeClass: 'bg-brand-50 text-brand-700 border-brand-200 font-bold',
+                    isUrgent: false,
+                    isExpired: false
+                };
+            }
+        }
+
+        // Render Tasks to HTML
+        function renderTasks() {
+            const listContainer = document.getElementById('taskList');
+            const emptyState = document.getElementById('emptyState');
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const sortOrder = document.getElementById('sortSelect').value;
+
+            // Filter logic
+            let filtered = tasks.filter(task => {
+                // Search match
+                const matchSubject = task.subject.toLowerCase().includes(searchQuery);
+                const matchTitle = (task.title || '').toLowerCase().includes(searchQuery);
+                if (!matchSubject && !matchTitle) return false;
+
+                // Status Filter
+                const ddayInfo = calculateDDay(task.dueDate, task.dueTime);
+                if (currentFilter === 'pending') return !task.completed;
+                if (currentFilter === 'completed') return task.completed;
+                if (currentFilter === 'urgent') return !task.completed && ddayInfo.isUrgent;
+                return true;
+            });
+
+            // Sorting logic
+            filtered.sort((a, b) => {
+                if (sortOrder === 'subject') {
+                    return a.subject.localeCompare(b.subject, 'ko-KR');
+                } else if (sortOrder === 'created') {
+                    return b.createdAt - a.createdAt;
+                } else {
+                    // Default: deadline
+                    const timeA = new Date(`${a.dueDate}T${a.dueTime || '23:59'}`).getTime();
+                    const timeB = new Date(`${b.dueDate}T${b.dueTime || '23:59'}`).getTime();
+                    return timeA - timeB;
+                }
+            });
+
+            // Update Statistics
+            updateStats();
+
+            // Clear view
+            listContainer.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+
+                filtered.forEach(task => {
+                    const dday = calculateDDay(task.dueDate, task.dueTime);
+                    const colorMap = {
+                        blue: 'border-l-blue-500 bg-blue-50/30',
+                        purple: 'border-l-purple-500 bg-purple-50/30',
+                        emerald: 'border-l-emerald-500 bg-emerald-50/30',
+                        amber: 'border-l-amber-500 bg-amber-50/30',
+                        rose: 'border-l-rose-500 bg-rose-50/30'
+                    };
+
+                    const tagBg = colorMap[task.color] || 'border-l-blue-500 bg-blue-50/30';
+
+                    const card = document.createElement('div');
+                    card.className = `bg-white rounded-2xl p-4 border border-slate-200 border-l-4 ${tagBg} shadow-sm transition-all duration-200 ${task.completed ? 'opacity-60 bg-slate-50' : ''}`;
+
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start space-x-3 flex-grow min-w-0">
+                                <!-- Checkbox -->
+                                <button onclick="toggleComplete('${task.id}')" class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-md border ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 bg-white'} flex items-center justify-center transition-colors">
+                                    ${task.completed ? `
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    ` : ''}
+                                </button>
+                                
+                                <div class="min-w-0 flex-grow">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 truncate max-w-[140px]">
+                                            ${escapeHtml(task.subject)}
+                                        </span>
+                                    </div>
+                                    <h4 class="text-sm font-bold text-slate-900 mt-1 truncate ${task.completed ? 'line-through text-slate-400' : ''}">
+                                        ${task.title ? escapeHtml(task.title) : '과제 내용 없음'}
+                                    </h4>
+                                    <p class="text-xs text-slate-500 mt-1 flex items-center space-x-1">
+                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0"></path>
+                                        </svg>
+                                        <span>마감: ${task.dueDate} ${task.dueTime || ''}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Right D-Day Badge & Actions -->
+                            <div class="flex flex-col items-end justify-between self-stretch">
+                                <span class="px-2.5 py-1 rounded-xl text-xs ${task.completed ? 'bg-slate-100 text-slate-400 border border-slate-200' : dday.badgeClass}">
+                                    ${task.completed ? '완료' : dday.text}
+                                </span>
+                                
+                                <div class="flex items-center space-x-1 mt-2">
+                                    <button onclick="editTask('${task.id}')" class="p-1 text-slate-400 hover:text-slate-600 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
+                                    </button>
+                                    <button onclick="deleteTask('${task.id}')" class="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    listContainer.appendChild(card);
+                });
+            }
+        }
+
+        // Update Stats Bar
+        function updateStats() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const pending = total - completed;
+
+            const urgentCount = tasks.filter(t => {
+                if (t.completed) return false;
+                const dday = calculateDDay(t.dueDate, t.dueTime);
+                return dday.isUrgent;
+            }).length;
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statPending').innerText = pending;
+            document.getElementById('statCompleted').innerText = completed;
+
+            const urgentBadge = document.getElementById('urgentBadge');
+            const urgentText = document.getElementById('urgentCountText');
+            if (urgentCount > 0) {
+                urgentBadge.classList.remove('hidden');
+                urgentText.innerText = `마감 임박 ${urgentCount}개`;
+            } else {
+                urgentBadge.classList.add('hidden');
+            }
+        }
+
+        // Filter Selection
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = 'filter-btn px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 bg-slate-100 rounded-lg transition-all';
+            });
+
+            const activeBtn = document.getElementById(`filter-${filterType}`);
+            if (activeBtn) {
+                activeBtn.className = 'filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition-all bg-slate-900 text-white shadow-sm';
+            }
+
+            renderTasks();
+        }
+
+        // Toggle Task Completion
+        function toggleComplete(id) {
+            tasks = tasks.map(t => {
+                if (t.id === id) {
+                    return { ...t, completed: !t.completed };
+                }
+                return t;
+            });
+            saveTasks();
+            renderTasks();
+        }
+
+        // Delete Task
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveTasks();
+            renderTasks();
+        }
+
+        // Modal Controls
+        function openModal(editId = null) {
+            const modal = document.getElementById('taskModal');
+            const container = document.getElementById('modalContainer');
+            const titleEl = document.getElementById('modalTitle');
+            const form = document.getElementById('taskForm');
+
+            form.reset();
+            setDefaultDate();
+
+            if (editId) {
+                const task = tasks.find(t => t.id === editId);
+                if (task) {
+                    titleEl.innerText = '과제 수정';
+                    document.getElementById('taskId').value = task.id;
+                    document.getElementById('subjectInput').value = task.subject;
+                    document.getElementById('titleInput').value = task.title || '';
+                    document.getElementById('dueDateInput').value = task.dueDate;
+                    document.getElementById('dueTimeInput').value = task.dueTime || '23:59';
+                    
+                    const radio = form.querySelector(`input[name="tagColor"][value="${task.color}"]`);
+                    if (radio) radio.checked = true;
+                }
+            } else {
+                titleEl.innerText = '새 과제 추가';
+                document.getElementById('taskId').value = '';
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                container.classList.remove('translate-y-full');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('taskModal');
+            const container = document.getElementById('modalContainer');
+            
+            container.classList.add('translate-y-full');
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function editTask(id) {
+            openModal(id);
+        }
+
+        // Form Submit Handler
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            const taskId = document.getElementById('taskId').value;
+            const subject = document.getElementById('subjectInput').value.trim();
+            const title = document.getElementById('titleInput').value.trim();
+            const dueDate = document.getElementById('dueDateInput').value;
+            const dueTime = document.getElementById('dueTimeInput').value;
+            const color = document.querySelector('input[name="tagColor"]:checked').value;
+
+            if (!subject || !dueDate) return;
+
+            if (taskId) {
+                // Update existing
+                tasks = tasks.map(t => {
+                    if (t.id === taskId) {
+                        return { ...t, subject, title, dueDate, dueTime, color };
+                    }
+                    return t;
+                });
+            } else {
+                // Add new
+                const newTask = {
+                    id: Date.now().toString(),
+                    subject,
+                    title,
+                    dueDate,
+                    dueTime,
+                    color,
+                    completed: false,
+                    createdAt: Date.now()
+                };
+                tasks.push(newTask);
+            }
+
+            saveTasks();
+            renderTasks();
+            closeModal();
+        }
+
+        // Helper to escape HTML characters
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
